@@ -28,7 +28,7 @@ public class Distributor {
 	public static List<TinyURL> expanded = Lists.newArrayList();
     
 	/*not yet expanded URLs*/
-	public static List<TinyURL> non_expanded = Lists.newArrayList();
+	public static List<String> non_expanded = Lists.newArrayList();
 
 
 	public Distributor(Configuration conf) {

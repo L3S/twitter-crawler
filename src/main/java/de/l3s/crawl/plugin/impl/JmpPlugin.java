@@ -11,6 +11,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import de.l3s.crawl.Distributor;
+import de.l3s.crawl.TinyURL;
 import de.l3s.crawl.plugin.Plugin;
 
 public class JmpPlugin implements Plugin{
@@ -61,12 +62,10 @@ public class JmpPlugin implements Plugin{
 			queue.removeAll(queue);
 
 			Set<Url> bitlyUrls = jmp.call(expandMethod);
-
-
-			Set<String> url_set = Sets.newLinkedHashSet();
+			Set<TinyURL> url_set = Sets.newLinkedHashSet();
 
 			for (Url u : bitlyUrls) {
-				url_set.add(u.getLongUrl());
+				url_set.add(new TinyURL(u.getLongUrl(), u.getShortUrl()));
 			}
 
 			Distributor.expanded.addAll(url_set);
