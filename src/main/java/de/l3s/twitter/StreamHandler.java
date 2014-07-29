@@ -200,7 +200,7 @@ public class StreamHandler {
 	 * @param args
 	 * @throws Exception
 	 */
-	public static void start(final String[] args) throws Exception {
+	public static void start(final String[] args) {
 
 		TwitterStream twitterStream = new TwitterStreamFactory().getInstance();
 		accessAuth(twitterStream);
@@ -248,7 +248,7 @@ public class StreamHandler {
 					// inject phase
 					// inject urls into CrawlDB
 					distributor.run(_urls);
-			
+
 					//Solution1: run crawler every buffering time
 					try {
 						ToolRunner.run(conf, c, args);
@@ -287,5 +287,12 @@ public class StreamHandler {
 		twitterStream.addListener(listener);
 		twitterStream.sample();
 
+	}
+
+	/**
+	 * Main method
+	 */
+	public static void main (String[] args) {
+		StreamHandler.start(args);
 	}
 }
