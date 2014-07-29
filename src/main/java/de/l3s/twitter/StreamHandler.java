@@ -248,7 +248,8 @@ public class StreamHandler {
 					// inject phase
 					// inject urls into CrawlDB
 					distributor.run(_urls);
-
+			
+					//Solution1: run crawler every buffering time
 					try {
 						ToolRunner.run(conf, c, args);
 					} catch (Exception e) {

@@ -22,7 +22,7 @@ public class JmpPlugin implements Plugin{
 	Provider jmp = Jmp.as("o_46dea4b2g3", "R_983de0b2f71045f0bd8135685e8850b0");
 
 	protected int cur_pos;
-	
+
 
 	@Override
 	public boolean isSupported(String url) {
@@ -33,10 +33,10 @@ public class JmpPlugin implements Plugin{
 	@Override
 	public void setIdx(int idx) {
 		cur_pos = idx;
-		
+
 	}
 
-	
+
 	@Override
 	public void next(List<String> urls) {
 		Plugin plugin = Distributor.plugins.get(cur_pos++);
@@ -49,28 +49,31 @@ public class JmpPlugin implements Plugin{
 		for (String url : urls) {
 			if (isSupported(url)) supported.add(url);
 			urls.remove(url);
-			
+
 			if (urls.size() > 0) next(urls);
 		}
-		
-		queue.addAll(supported);
-		if (queue.size() == MAX_SIZE) {
-			// send batch processing request
-			BitlyMethod<Set<Url>> expandMethod = expand(queue.toArray(new String[MAX_SIZE]));
 
-			//empty queue
-			queue.removeAll(queue);
 
-			Set<Url> bitlyUrls = jmp.call(expandMethod);
-			Set<TinyURL> url_set = Sets.newLinkedHashSet();
+		int cnt = 0;
+		for (String url : supported) {
+			queue.add(url);
+			if (queue.size() == MAX_SIZE || cnt++ == supported.size() -1) {
+				// send batch processing request
+				BitlyMethod<Set<Url>> expandMethod = expand(queue.toArray(new String[queue.size()]));
 
-			for (Url u : bitlyUrls) {
-				url_set.add(new TinyURL(u.getLongUrl(), u.getShortUrl()));
+				//empty queue
+				queue.removeAll(queue);
+
+				Set<Url> bitlyUrls = jmp.call(expandMethod);
+				Set<TinyURL> url_set = Sets.newLinkedHashSet();
+
+				for (Url u : bitlyUrls) {
+					url_set.add(new TinyURL(u.getLongUrl(), u.getShortUrl()));
+				}
+
+				Distributor.expanded.addAll(url_set);
 			}
-
-			Distributor.expanded.addAll(url_set);
 		}
-
 	}
 
 }

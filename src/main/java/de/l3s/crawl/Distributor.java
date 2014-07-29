@@ -19,8 +19,6 @@ import de.l3s.crawl.plugin.impl.JmpPlugin;
 
 public class Distributor {
 	private static final Logger logger = LoggerFactory.getLogger(Distributor.class);
-	private Configuration conf;
-
 	/* Custom Injector that handles normal and redirect URLs */
 	private Injector injector;
 
@@ -41,7 +39,6 @@ public class Distributor {
 
 
 	public Distributor(Configuration conf) {
-		this.conf = conf;
 		try {
 			this.injector = new Injector(conf);
 
