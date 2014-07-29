@@ -82,8 +82,10 @@ public class Distributor {
 				//inject into crawl DB
 				try {
 					String long_normalized;
+					logger.info("import to crawlDB");
 					injector.inject((long_normalized = useNutchURLNormalizer(url._long)));
 					//store redirect
+					logger.info("import redirect " + url._short + " >>  " + url._long);
 					injector.addRedirect(useNutchURLNormalizer(url._short), long_normalized);
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());
@@ -95,6 +97,7 @@ public class Distributor {
 			for (String url : non_expanded) {
 				try {
 					//give redirect handing job to Nutch
+					logger.info("flush to Nutch Injector");
 					injector.inject(useNutchURLNormalizer(url));
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());

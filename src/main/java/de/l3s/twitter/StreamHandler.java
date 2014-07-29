@@ -45,9 +45,9 @@ public class StreamHandler {
 	private final static String TOKEN = "27426413-txA0jPBPMwiiZRNTjbZeksywONnDeQ6mTPeFORIZo";
 	private final static String TOKEN_SECRET = "GqOGRX3BCBC9TGBr7bV8LluAFr5XvW74hC5ZTMaienk18";
 
-	final static int MAX_BUFF_SIZE = 10000;
+	final static int MAX_BUFF_SIZE = 1000;
 
-	protected static final int MAX_DRAIN_SIZE = 1000;
+	protected static final int MAX_DRAIN_SIZE = 100;
 
 	protected static final int MAX_NO_CRAWLER = 3;
 
@@ -232,7 +232,11 @@ public class StreamHandler {
 							//get URL text
 							String tco;
 							//handle t.co by API
-							if ((tco = url.getExpandedURL()) != null) tweets_buff.add(tco);
+							
+							if ((tco = url.getExpandedURL()) != null) {
+								LOG.info("t.co URL: " + url.getText());
+								tweets_buff.add(tco);
+							}
 							else tweets_buff.add(url.getURL());
 						}	
 						urls.clear();
