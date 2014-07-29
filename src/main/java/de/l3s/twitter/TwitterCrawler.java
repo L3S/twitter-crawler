@@ -3,7 +3,6 @@ package de.l3s.twitter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -22,17 +21,12 @@ import org.apache.nutch.util.ToolUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
-import de.l3s.crawl.Distributor;
-
 
 public class TwitterCrawler extends NutchTool implements Tool {
 	private static final Logger LOG = LoggerFactory.getLogger(TwitterCrawler.class);
 
 	private static final String ARG_RESOLVE = null;
 
-	public static List<String> urls = Lists.newLinkedList();
 
 	private HashMap<String,Object> results = new HashMap<String,Object>();
 	private Map<String,Object> status =
@@ -68,7 +62,11 @@ public class TwitterCrawler extends NutchTool implements Tool {
 		}
 		return false;
 	}
-
+ 
+	/**
+	 * Remove injection (to CrawlDB) part
+	 * Generator - Fetcher - Parser
+	 */
 	@Override
 	public Map<String,Object> run(Map<String, Object> args) throws Exception {
 		results.clear();
@@ -78,13 +76,8 @@ public class TwitterCrawler extends NutchTool implements Tool {
 			getConf().set(Nutch.CRAWL_ID_KEY, crawlId);
 		}
 
-        // initialize Distributor
-		Distributor distributor = new Distributor(getConf());
-		distributor.init();
-		LOG.info("TweetCrawler: Number of URLs in buffer: " + urls.size());
-		
-
 		Integer depth = (Integer)args.get(Nutch.ARG_DEPTH);
+		//we fix depth = 1 for this Twitter crawler
 		if (depth == null) depth = 1;
 		boolean parse = getConf().getBoolean(FetcherJob.PARSE_KEY, false);
 		int onePhase = 3;
@@ -96,12 +89,7 @@ public class TwitterCrawler extends NutchTool implements Tool {
 		LinkedHashMap<String,Object> subTools = new LinkedHashMap<String,Object>();
 		status.put(Nutch.STAT_JOBS, subTools);
 		results.put(Nutch.STAT_JOBS, subTools);
-		// inject phase
-		
-		distributor.run(urls);
-				
-		//empty queue;
-		urls.clear();
+
 		
 		if (shouldStop) {
 			return results;

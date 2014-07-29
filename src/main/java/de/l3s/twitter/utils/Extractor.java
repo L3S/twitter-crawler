@@ -201,11 +201,11 @@ public class Extractor {
 		}
 
 		// Performance optimization.
-		// If text doesn't contain @/��� at all, the text doesn't
+		// If text doesn't contain @/��������� at all, the text doesn't
 		// contain @mention. So we can simply return an empty list.
 		boolean found = false;
 		for (char c : text.toCharArray()) {
-			if (c == '@' || c == '＠') {
+			if (c == '@') {
 				found = true;
 				break;
 			}
@@ -363,11 +363,11 @@ public class Extractor {
 		}
 
 		// Performance optimization.
-		// If text doesn't contain #/��� at all, text doesn't contain
+		// If text doesn't contain #/��������� at all, text doesn't contain
 		// hashtag, so we can simply return an empty list.
 		boolean found = false;
 		for (char c : text.toCharArray()) {
-			if (c == '#' || c == '＃') {
+			if (c == '#') {
 				found = true;
 				break;
 			}

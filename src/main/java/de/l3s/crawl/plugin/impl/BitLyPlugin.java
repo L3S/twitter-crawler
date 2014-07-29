@@ -14,8 +14,8 @@ import de.l3s.crawl.Distributor;
 import de.l3s.crawl.TinyURL;
 import de.l3s.crawl.plugin.Plugin;
 
-public class BitLyPlugin implements Plugin{
-
+public class BitLyPlugin implements Plugin {
+    /* Batch size per request via API */
 	private static final int MAX_SIZE = 15;
 	public Set<String> queue = Sets.newLinkedHashSet();
 

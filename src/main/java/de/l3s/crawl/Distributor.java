@@ -3,6 +3,8 @@ package de.l3s.crawl;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.nutch.net.URLFilters;
+import org.apache.nutch.net.URLNormalizers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,18 +18,25 @@ import de.l3s.crawl.plugin.impl.BitLyPlugin;
 import de.l3s.crawl.plugin.impl.JmpPlugin;
 
 public class Distributor {
-    private static final Logger logger = LoggerFactory.getLogger(Distributor.class);
-	public Configuration conf;
-    /*Custom Injector that handles normal and redirect URLs */
-	public Injector injector;
-    
-	/*Chain of responsibility: list of plugins*/
+	private static final Logger logger = LoggerFactory.getLogger(Distributor.class);
+	private Configuration conf;
+
+	/* Custom Injector that handles normal and redirect URLs */
+	private Injector injector;
+
+	/* Nutch URL filter */
+	private URLFilters filters;
+
+	/* Nutch URL normalizer */ 
+	private URLNormalizers urlNormalizers;
+
+	/* Chain of responsibility: list of plugins */
 	public static List<Plugin> plugins = Lists.newArrayList();
 
-	/*expanded URLs*/
+	/* expanded URLs */
 	public static List<TinyURL> expanded = Lists.newArrayList();
-    
-	/*not yet expanded URLs*/
+
+	/* not yet expanded URLs */
 	public static List<String> non_expanded = Lists.newArrayList();
 
 
@@ -35,9 +44,16 @@ public class Distributor {
 		this.conf = conf;
 		try {
 			this.injector = new Injector(conf);
+
 		} catch (InjectorSetupException e) {
 			logger.error(e.getMessage());
 		}
+
+		urlNormalizers = new URLNormalizers(conf,
+				URLNormalizers.SCOPE_INJECT);
+
+		filters = new URLFilters(conf);
+		init();
 	}
 
 	public void init() {
@@ -49,7 +65,7 @@ public class Distributor {
 		jmp.setIdx(1);
 		plugins.add(jmp);
 	}
-	
+
 	/**
 	 * Send URLs from stream to chain of 
 	 * responsibility plugins
@@ -58,7 +74,7 @@ public class Distributor {
 	public void expand (List<String> urls) {
 		plugins.get(0).handle(urls);
 	}
-   
+
 	/**
 	 * Flush the expanded/non-expanded URLs
 	 * into the Injector -> store in crawlDB
@@ -68,24 +84,50 @@ public class Distributor {
 			for (TinyURL url : expanded) {
 				//inject into crawl DB
 				try {
-					injector.inject(url._long);
+					String long_normalized;
+					injector.inject((long_normalized = useNutchURLNormalizer(url._long)));
 					//store redirect
-					injector.addRedirect(url._short, url._long);
+					injector.addRedirect(useNutchURLNormalizer(url._short), long_normalized);
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());
 				}
 			}
 		}
 		if (non_expanded != null) {
-			//TODO: will be handled by Injector?
+
+			for (String url : non_expanded) {
+				try {
+					//give redirect handing job to Nutch
+					injector.inject(useNutchURLNormalizer(url));
+				} catch (InjectorInjectionException e) {
+					logger.error(e.getMessage());
+				}
+			}
 		}
 	}
-	
+
 	public void run(List<String> urls) {
 		// expand
 		expand(urls);
 		//store
 		store();
+	}
+
+
+	/**
+	 * normalization function of Nutch
+	 * @param url
+	 * @return
+	 */
+	public String useNutchURLNormalizer(String url) {
+		try {
+			url = urlNormalizers.normalize(url, URLNormalizers.SCOPE_INJECT);
+			url = filters.filter(url); // filter the url
+		} catch (Exception e) {
+			logger.warn("Skipping " + url + ":" + e);
+			url = null;
+		}
+		return url;
 	}
 
 }

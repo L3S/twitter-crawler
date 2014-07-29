@@ -12,6 +12,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.nutch.util.NutchConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ import twitter4j.auth.RequestToken;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 
+import de.l3s.crawl.Distributor;
 import de.l3s.nutch.utils.NSecurityManager;
 
 public class StreamHandler {
@@ -48,6 +50,10 @@ public class StreamHandler {
 	protected static final int MAX_DRAIN_SIZE = 1000;
 
 	protected static final int MAX_NO_CRAWLER = 3;
+
+	private static LinkedBlockingQueue<String> tweets_buff;
+
+	private static LinkedBlockingQueue<String> tweets_buff2;
 
 	/**
 	 * Authentication
@@ -105,17 +111,18 @@ public class StreamHandler {
 		TwitterStream twitterStream = new TwitterStreamFactory().getInstance();
 		accessAuth(twitterStream);
 
-		//Buffer
-		//TODO: redesign the buffering mechanism so that no urls lost 
-		//keep track of url from which tweet id
-		//the tmp url file dont work
-		final LinkedBlockingQueue<String> tweets_buff = Queues.newLinkedBlockingQueue(MAX_BUFF_SIZE * 2);
+		tweets_buff2 = Queues.newLinkedBlockingQueue(MAX_BUFF_SIZE * 2);
 
 		StatusListener listener = new StatusListener() {
 
 			List<URLEntity> urls = Lists.newArrayList();
+			List<String> _urls = Lists.newArrayList();
 			Configuration conf = NutchConfiguration.create();
+			/* The Twitter crawler that handles the URLs */
 			TwitterCrawler c = new TwitterCrawler();
+			// initialize Distributor
+			Distributor distributor = new Distributor(conf);
+
 			AtomicInteger noCrawler = new AtomicInteger(0);
 			@Override
 			public void onStatus(Status status) {
@@ -124,24 +131,29 @@ public class StreamHandler {
 				//when queue is full flush to injectorjob
 				urls = new LinkedList<URLEntity>(Arrays.asList(status.getURLEntities()));
 
-				if (tweets_buff.size() <= MAX_BUFF_SIZE) {
+				if (tweets_buff2.size() <= MAX_BUFF_SIZE) {
 					if (!urls.isEmpty()) {
-						
+
 						for (URLEntity url : urls) {
 							//get URL text
-							tweets_buff.add(url.getURL());
+							tweets_buff2.add(url.getURL());
 						}	
 						urls.clear();
 					}
 				}
-				if (tweets_buff.size() % 100 == 0) LOG.info("TwitterMain: number of URLs in buff: " + tweets_buff.size() );
-				if (tweets_buff.size() > MAX_DRAIN_SIZE && noCrawler.get() < MAX_NO_CRAWLER) {
+				if (tweets_buff2.size() % 100 == 0) LOG.info("TwitterMain: number of URLs in buff: " + tweets_buff2.size() );
+				if (tweets_buff2.size() > MAX_DRAIN_SIZE && noCrawler.get() < MAX_NO_CRAWLER) {
 
 					LOG.info("number of active thread: " + noCrawler.get());
 
-					LOG.info("Start crawling from buffer: " + tweets_buff.size());
-					tweets_buff.drainTo(TwitterCrawler.urls, MAX_DRAIN_SIZE);
-					LOG.info("buffer size: " + tweets_buff.size());
+					LOG.info("Start crawling from buffer: " + tweets_buff2.size());
+					tweets_buff2.drainTo(_urls, MAX_DRAIN_SIZE);
+					LOG.info("buffer size: " + tweets_buff2.size());
+
+
+					// inject phase
+
+					distributor.run(_urls);
 
 					ExecutorService e = Executors.newFixedThreadPool(MAX_NO_CRAWLER);
 
@@ -189,23 +201,24 @@ public class StreamHandler {
 	 * @throws Exception
 	 */
 	public static void start(final String[] args) throws Exception {
-		System.setSecurityManager(new NSecurityManager());
 
 		TwitterStream twitterStream = new TwitterStreamFactory().getInstance();
 		accessAuth(twitterStream);
 
-		//Buffer
-		//TODO: redesign the buffering mechanism so that no urls lost 
-		//keep track of url from which tweet id
-		//the tmp url file dont work
-		final LinkedBlockingQueue<String> tweets_buff = Queues.newLinkedBlockingQueue(MAX_BUFF_SIZE * 2);
+		tweets_buff = Queues.newLinkedBlockingQueue(MAX_BUFF_SIZE);
+
 
 		StatusListener listener = new StatusListener() {
 
 			List<URLEntity> urls = Lists.newArrayList();
+			List<String> _urls = Lists.newArrayList();
 			Configuration conf = NutchConfiguration.create();
+
+			/* The Twitter crawler that handles the URLs */
 			TwitterCrawler c = new TwitterCrawler();
-			AtomicInteger noCrawler = new AtomicInteger(0);
+			// initialize Distributor
+			Distributor distributor = new Distributor(conf);
+
 			@Override
 			public void onStatus(Status status) {
 
@@ -217,23 +230,30 @@ public class StreamHandler {
 					if (!urls.isEmpty()) {
 						for (URLEntity url : urls) {
 							//get URL text
-							tweets_buff.add(url.getURL());
+							String tco;
+							//handle t.co by API
+							if ((tco = url.getExpandedURL()) != null) tweets_buff.add(tco);
+							else tweets_buff.add(url.getURL());
 						}	
 						urls.clear();
 					}
 				}
 				if (tweets_buff.size() % 100 == 0) LOG.info("TwitterMain: number of URLs in buff: " + tweets_buff.size() );
-				if (tweets_buff.size() > MAX_DRAIN_SIZE && noCrawler.get() < MAX_NO_CRAWLER) {
-
-					LOG.info("number of active thread: " + noCrawler.get());
+				if (tweets_buff.size() > MAX_DRAIN_SIZE) {
 
 					LOG.info("Start crawling from buffer: " + tweets_buff.size());
-					tweets_buff.drainTo(TwitterCrawler.urls, MAX_DRAIN_SIZE);
+					tweets_buff.drainTo(_urls, MAX_DRAIN_SIZE);
 					LOG.info("buffer size: " + tweets_buff.size());
 
+					// inject phase
+					// inject urls into CrawlDB
+					distributor.run(_urls);
 
-					//TODO: start crawler
-
+					try {
+						ToolRunner.run(conf, c, args);
+					} catch (Exception e) {
+						LOG.error(e.getMessage());
+					}
 				}
 
 			}
