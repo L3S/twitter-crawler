@@ -6,7 +6,13 @@ import java.net.Proxy;
 import java.net.URL;
 
 public class URLUtils {
-
+    
+	/**
+	 * Trick for faster getting the redirect URL from HTTP header
+	 * @param address
+	 * @return
+	 * @throws IOException
+	 */
 	public static String expandShortURL(String address) throws IOException {
 		URL url = new URL(address);
 

@@ -4,6 +4,7 @@ import com.rosaloves.bitlyj.*;
 
 import static com.rosaloves.bitlyj.Bitly.*;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -39,21 +40,27 @@ public class JmpPlugin implements Plugin{
 
 	@Override
 	public void next(List<String> urls) {
-		Plugin plugin = Distributor.plugins.get(cur_pos++);
-		if (plugin != null) plugin.handle(urls);
+		Plugin plugin = null;
+		try {
+			plugin = Distributor.plugins.get(cur_pos++);
+		} catch (IndexOutOfBoundsException e) {}
+		if (plugin != null)  plugin.handle(urls);
+		else Distributor.non_expanded.addAll(urls);
 	}
 
 	@Override
 	public void handle(List<String> urls) {
 		List<String> supported = Lists.newArrayList();
-		for (String url : urls) {
-			if (isSupported(url)) supported.add(url);
-			urls.remove(url);
+		for (Iterator<String> iter = urls.iterator(); iter.hasNext();) {
+			String url = iter.next();
+			if (isSupported(url)) {
+				supported.add(url);
 
-			if (urls.size() > 0) next(urls);
+				iter.remove();
+			}
 		}
 
-
+		if (urls.size() > 0) next(urls);
 		int cnt = 0;
 		for (String url : supported) {
 			queue.add(url);

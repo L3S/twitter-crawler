@@ -36,6 +36,13 @@ import com.google.common.collect.Queues;
 import de.l3s.crawl.Distributor;
 import de.l3s.nutch.utils.NSecurityManager;
 
+
+/* This class in handling tweet stream from the twitter API.
+ * URLs are extracted from the tweet stream and put into a buffer
+ * with fix size. When the buffer is full, it will flush to the Distributor
+ * where URLs are resolved. The URLs are then put into the CrawlDB. After this 
+ * step, the crawler is called.
+ */
 public class StreamHandler {
 	public static final Logger LOG = LoggerFactory.getLogger(StreamHandler.class);
 
@@ -100,12 +107,11 @@ public class StreamHandler {
 
 
 	/**
-	 * Main entry of this application.
 	 * Parallel crawlers
 	 * @param args arguments doesn't take effect with this example
 	 * @throws Exception 
 	 */
-	public static void parallelStart(final String[] args) throws Exception {
+	public void parallelStart() throws Exception {
 		System.setSecurityManager(new NSecurityManager());
 
 		TwitterStream twitterStream = new TwitterStreamFactory().getInstance();
@@ -152,12 +158,12 @@ public class StreamHandler {
 
 
 					// inject phase
-
 					distributor.run(_urls);
 
 					ExecutorService e = Executors.newFixedThreadPool(MAX_NO_CRAWLER);
-
-					CrawlerThread crawlerT = new CrawlerThread(noCrawler, conf, c , args);
+                    //run the crawler (generator - fetcher -parser -updater loop)
+					//parallelized 
+					CrawlerThread crawlerT = new CrawlerThread(noCrawler, conf, c , null);
 
 					e.submit(crawlerT);
 
@@ -200,14 +206,13 @@ public class StreamHandler {
 	 * @param args
 	 * @throws Exception
 	 */
-	public static void start(final String[] args) {
-
+	public void start () {
+        /* call the tweet stream from Twitter API */ 
 		TwitterStream twitterStream = new TwitterStreamFactory().getInstance();
 		accessAuth(twitterStream);
 
 		tweets_buff = Queues.newLinkedBlockingQueue(MAX_BUFF_SIZE);
-
-
+ 
 		StatusListener listener = new StatusListener() {
 
 			List<URLEntity> urls = Lists.newArrayList();
@@ -221,6 +226,7 @@ public class StreamHandler {
 
 			@Override
 			public void onStatus(Status status) {
+				LOG.info(status.getText());
 
 				//extract URL from tweet and put in queue
 				//when queue is full flush to injectorjob
@@ -232,7 +238,7 @@ public class StreamHandler {
 							//get URL text
 							String tco;
 							//handle t.co by API
-							
+
 							if ((tco = url.getExpandedURL()) != null) {
 								LOG.info("t.co URL: " + url.getText());
 								tweets_buff.add(tco);
@@ -255,7 +261,7 @@ public class StreamHandler {
 
 					//Solution1: run crawler every buffering time
 					try {
-						ToolRunner.run(conf, c, args);
+						ToolRunner.run(conf, c, null);
 					} catch (Exception e) {
 						LOG.error(e.getMessage());
 					}
@@ -297,6 +303,10 @@ public class StreamHandler {
 	 * Main method
 	 */
 	public static void main (String[] args) {
-		StreamHandler.start(args);
+		
+		StreamHandler main = new StreamHandler();
+		main.start();
+
 	}
+
 }

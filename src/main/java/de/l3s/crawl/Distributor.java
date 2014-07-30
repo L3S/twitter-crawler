@@ -17,6 +17,12 @@ import de.l3s.crawl.plugin.Plugin;
 import de.l3s.crawl.plugin.impl.BitLyPlugin;
 import de.l3s.crawl.plugin.impl.JmpPlugin;
 
+/* This class is a distributor of URL service plugins.
+ * The class contains a chain of responsibility, list of plugins.
+ * URLs from the stream are handled in a batch request to the service API,
+ * which is more efficient and in a polite manner. Unresolved URI are flushed 
+ * to the resolving mechanism of Nutch.
+ */
 public class Distributor {
 	private static final Logger logger = LoggerFactory.getLogger(Distributor.class);
 	/* Custom Injector that handles normal and redirect URLs */
@@ -84,11 +90,14 @@ public class Distributor {
 					String long_normalized;
 					logger.info("import to crawlDB");
 					injector.inject((long_normalized = useNutchURLNormalizer(url._long)));
-					//store redirect
+					//store redirect information in to crawlDB
 					logger.info("import redirect " + url._short + " >>  " + url._long);
 					injector.addRedirect(useNutchURLNormalizer(url._short), long_normalized);
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());
+				} catch (IllegalArgumentException iae) {
+					//catch malformed URLs
+					logger.error(iae.getMessage());
 				}
 			}
 		}
