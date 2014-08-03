@@ -27,7 +27,8 @@ public class TwitterCrawler extends NutchTool implements Tool {
 
 	private static final String ARG_RESOLVE = null;
 
-
+	public static boolean finished = false;
+	
 	private HashMap<String,Object> results = new HashMap<String,Object>();
 	private Map<String,Object> status =
 		Collections.synchronizedMap(new HashMap<String,Object>());
@@ -145,7 +146,7 @@ public class TwitterCrawler extends NutchTool implements Tool {
 
 	@Override
 	public float getProgress() {
-		Float p = (Float)status.get(Nutch.STAT_PROGRESS);
+		Float p = (Float) status.get(Nutch.STAT_PROGRESS);
 		if (p == null) return 0;
 		return p;
 	}
@@ -169,7 +170,11 @@ public class TwitterCrawler extends NutchTool implements Tool {
 				ARG_RESOLVE, resolve,
 				Nutch.ARG_SEEDDIR, seedDir,
 				Nutch.ARG_NUMTASKS, numTasks);
+		finished = false;
 		run(argMap);
+		finished = true;
+		
+		
 		return 0;
 	}
 

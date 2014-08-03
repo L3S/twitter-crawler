@@ -2,9 +2,11 @@ package de.l3s.crawl;
 
 import java.util.List;
 
+import org.apache.gora.store.DataStore;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.net.URLFilters;
 import org.apache.nutch.net.URLNormalizers;
+import org.apache.nutch.storage.WebPage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,10 +31,10 @@ public class Distributor {
 	private Injector injector;
 
 	/* Nutch URL filter */
-	private URLFilters filters;
+	private static URLFilters filters;
 
 	/* Nutch URL normalizer */ 
-	private URLNormalizers urlNormalizers;
+	private static URLNormalizers urlNormalizers;
 
 	/* Chain of responsibility: list of plugins */
 	public static List<Plugin> plugins = Lists.newArrayList();
@@ -43,23 +45,8 @@ public class Distributor {
 	/* not yet expanded URLs */
 	public static List<String> non_expanded = Lists.newArrayList();
 
-
-	public Distributor(Configuration conf) {
-		try {
-			this.injector = new Injector(conf);
-
-		} catch (InjectorSetupException e) {
-			logger.error(e.getMessage());
-		}
-
-		urlNormalizers = new URLNormalizers(conf,
-				URLNormalizers.SCOPE_INJECT);
-
-		filters = new URLFilters(conf);
-		init();
-	}
-
-	public void init() {
+	private DataStore<String, WebPage> store;
+	public Distributor() {
 		BitLyPlugin bitly = new BitLyPlugin();
 		bitly.setIdx(0);
 		plugins.add(bitly);
@@ -67,6 +54,17 @@ public class Distributor {
 		JmpPlugin jmp = new JmpPlugin();
 		jmp.setIdx(1);
 		plugins.add(jmp);
+	}
+
+	public void setInjector(Configuration conf, int id) {
+		try {
+			//conf.set("storage.data.store.class", MemStore.class.getName());
+			store = Injector.createStore(conf, "" + id);
+			injector = new Injector(conf, store);
+
+		} catch (InjectorSetupException e) {
+			logger.error(e.getMessage());
+		}
 	}
 
 	/**
@@ -87,12 +85,11 @@ public class Distributor {
 			for (TinyURL url : expanded) {
 				//inject into crawl DB
 				try {
-					String long_normalized;
-					logger.info("import to crawlDB");
-					injector.inject((long_normalized = useNutchURLNormalizer(url._long)));
-					//store redirect information in to crawlDB
-					logger.info("import redirect " + url._short + " >>  " + url._long);
-					injector.addRedirect(useNutchURLNormalizer(url._short), long_normalized);
+					//logger.info("import to crawlDB");
+					injector.inject((url._long));
+					//store redirect
+					//logger.info("import redirect " + url._short + " >>  " + url._long);
+					injector.addRedirect(url._short, url._long);
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());
 				} catch (IllegalArgumentException iae) {
@@ -106,8 +103,8 @@ public class Distributor {
 			for (String url : non_expanded) {
 				try {
 					//give redirect handing job to Nutch
-					logger.info("flush to Nutch Injector");
-					injector.inject(useNutchURLNormalizer(url));
+					//logger.info("flush to Nutch Injector");
+					injector.inject(url);
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());
 				}
@@ -128,12 +125,21 @@ public class Distributor {
 	 * @param url
 	 * @return
 	 */
-	public String useNutchURLNormalizer(String url) {
+	public static String useNutchURLNormalizer(String url) {
+		if (url != null && url.trim().startsWith("#")) {
+			/* Ignore line that start with # */
+			return null;
+		}
+		if (url.indexOf("\t") != -1) {
+			String[] splits = url.split("\t");
+			url = splits[0];
+		}
 		try {
 			url = urlNormalizers.normalize(url, URLNormalizers.SCOPE_INJECT);
 			url = filters.filter(url); // filter the url
 		} catch (Exception e) {
 			logger.warn("Skipping " + url + ":" + e);
+			e.printStackTrace();
 			url = null;
 		}
 		return url;
