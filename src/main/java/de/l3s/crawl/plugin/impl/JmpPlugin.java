@@ -75,7 +75,7 @@ public class JmpPlugin implements Plugin{
 				Set<TinyURL> url_set = Sets.newLinkedHashSet();
 
 				for (Url u : bitlyUrls) {
-					url_set.add(new TinyURL(u.getLongUrl(), u.getShortUrl()));
+					url_set.add(new TinyURL(u.getShortUrl(), u.getLongUrl()));
 				}
 
 				Distributor.expanded.addAll(url_set);
