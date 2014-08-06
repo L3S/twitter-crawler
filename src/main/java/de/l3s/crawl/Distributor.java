@@ -2,6 +2,7 @@ package de.l3s.crawl;
 
 import java.util.List;
 
+import org.apache.gora.memory.store.MemStore;
 import org.apache.gora.store.DataStore;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nutch.net.URLFilters;
@@ -58,13 +59,16 @@ public class Distributor {
 
 	public void setInjector(Configuration conf, int id) {
 		try {
-			//conf.set("storage.data.store.class", MemStore.class.getName());
 			store = Injector.createStore(conf, "" + id);
 			injector = new Injector(conf, store);
 
 		} catch (InjectorSetupException e) {
 			logger.error(e.getMessage());
 		}
+	}
+
+	public void inMemStore(Configuration conf) {
+		conf.set("storage.data.store.class", MemStore.class.getName()); 
 	}
 
 	/**
@@ -85,10 +89,13 @@ public class Distributor {
 			for (TinyURL url : expanded) {
 				//inject into crawl DB
 				try {
-					//logger.info("import to crawlDB");
+					// handle null expansion return from URL API
+					if (url._long == null) {
+						non_expanded.add(url._short);
+						continue;
+					}
 					injector.inject((url._long));
 					//store redirect
-					//logger.info("import redirect " + url._short + " >>  " + url._long);
 					injector.addRedirect(url._short, url._long);
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());
@@ -103,7 +110,6 @@ public class Distributor {
 			for (String url : non_expanded) {
 				try {
 					//give redirect handing job to Nutch
-					//logger.info("flush to Nutch Injector");
 					injector.inject(url);
 				} catch (InjectorInjectionException e) {
 					logger.error(e.getMessage());
