@@ -7,6 +7,9 @@ import org.apache.hadoop.util.ToolRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ *  a crawler thread for parallelization 
+ */
 public class CrawlerThread implements Runnable {
 	
 	public static final Logger LOG = LoggerFactory.getLogger(StreamHandler.class);
