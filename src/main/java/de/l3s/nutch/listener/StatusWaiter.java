@@ -8,6 +8,12 @@ import de.l3s.crawl.Crawler;
 import de.l3s.twitter.StreamHandler;
 import de.l3s.twitter.TwitterCrawler;
 
+/*
+ * This class controls when to start the new crawler.
+ * This allows a sequential execution (one-by-one) of the crawler.
+ * When to start depends on the status of the queue (size) and the running 
+ * crawler (finished)
+ */
 public class StatusWaiter<T> extends Thread {
 	
 	public final TwitterCrawler c;
@@ -33,7 +39,6 @@ public class StatusWaiter<T> extends Thread {
 	public void run() {
 		while (!isInterrupted()) {
 			if (TwitterCrawler.finished && queue.size() >= StreamHandler.MAX_DRAIN_SIZE) {
-				System.out.println("Done crawling");
 				listener.runCrawler(conf, crawler);
 			}
  		}

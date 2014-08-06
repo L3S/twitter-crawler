@@ -7,6 +7,11 @@ import org.apache.hadoop.conf.Configuration;
 import de.l3s.crawl.Crawler;
 import de.l3s.twitter.StreamHandler;
 
+/*
+ * This class controls when to start the new crawler.
+ * This allows a parallelization execution (multi-thread) of the crawler.
+ * When to start depends solely on the status of the queue (size)
+ */
 public class QueueWaiter<T> extends Thread {
 
 	public final LinkedBlockingQueue<T> queue;

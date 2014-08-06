@@ -26,7 +26,8 @@ public class TwitterCrawler extends NutchTool implements Tool {
 	private static final Logger LOG = LoggerFactory.getLogger(TwitterCrawler.class);
 
 	private static final String ARG_RESOLVE = null;
-
+    
+	/* controls status of the looping phases */
 	public static boolean finished = false;
 	
 	private HashMap<String,Object> results = new HashMap<String,Object>();
@@ -67,6 +68,7 @@ public class TwitterCrawler extends NutchTool implements Tool {
 	/**
 	 * Remove injection (to CrawlDB) part
 	 * Generator - Fetcher - Parser
+	 * Depth default for Twitter crawler is set to 1
 	 */
 	@Override
 	public Map<String,Object> run(Map<String, Object> args) throws Exception {
@@ -157,8 +159,8 @@ public class TwitterCrawler extends NutchTool implements Tool {
 		String seedDir = null;
 		int threads = getConf().getInt("fetcher.threads.fetch", 10);    
 		int depth = 1;
-		long topN = 1;
-		//long topN = Long.MAX_VALUE;
+		//long topN = 1;
+		long topN = Long.MAX_VALUE;
 		Integer numTasks = null;
 		//leave resolve job to Nutch
 		boolean resolve = false;
@@ -170,8 +172,10 @@ public class TwitterCrawler extends NutchTool implements Tool {
 				ARG_RESOLVE, resolve,
 				Nutch.ARG_SEEDDIR, seedDir,
 				Nutch.ARG_NUMTASKS, numTasks);
+		// reset status 
 		finished = false;
 		run(argMap);
+		// update status
 		finished = true;
 		
 		

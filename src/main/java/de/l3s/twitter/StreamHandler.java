@@ -375,7 +375,7 @@ public class StreamHandler {
 					statusWaiter.setConf(conf);
 
 					if (i == 1 ) statusWaiter.crawler.run(conf);
-					System.out.println("i :" + i);
+					LOG.info("crawler ID (incremental) :" + i);
 				}
 
 			}
