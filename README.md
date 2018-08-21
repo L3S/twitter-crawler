@@ -4,7 +4,7 @@ Specifications:
 
 - FetcherJobs should be run in a serial way to ensure that we adhere to
 the rate limits (politeness)
-- we will have three modules: twitter-crawler, icrawl-url-expander,
+- we have three modules: twitter-crawler, icrawl-url-expander,
 icraw-injector
 - the twitter crawler hands all URLs to the url expander
 - the url expander has distributor, which has a chain of URL shortener
