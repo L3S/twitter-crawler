@@ -1,6 +1,6 @@
-A Twitter crawler module to resolve and store URL content
+A scalable Twitter crawler module to resolve and store URL content in HBase.
 
-Specifications:
+## Specifications:
 
 - FetcherJobs should be run in a serial way to ensure that we adhere to
 the rate limits (politeness)
@@ -24,3 +24,9 @@ the injector and to the redirect archiver
 long URL, including metadata
 - the plugin regularly checks, if there haven't been any additions to
 the queue and if so, resolves the URLs in the queue
+
+## What you need
+
+- JDK 8
+- Apache Nutch 2.2.1 with HBase
+- nutch-injector 1.0 
